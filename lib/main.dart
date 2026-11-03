@@ -185,27 +185,28 @@ class _TrimScreenState extends State<TrimScreen> {
     }
   }
 
-  Future<void> saveVideo() async {
+   Future<void> saveVideo() async {
     setState(() => saving = true);
 
     try {
-      final output = await trimmer.saveTrimmedVideo(
+      await trimmer.saveTrimmedVideo(
         startValue: startValue,
         endValue: endValue,
-      );
+        onSave: (String? output) {
+          if (!mounted) return;
 
-      if (!mounted) return;
+          setState(() => savedPath = output);
 
-      setState(() => savedPath = output);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            output == null
-                ? 'Video save nahi hua'
-                : 'Trimmed video saved!',
-          ),
-        ),
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                output == null
+                    ? 'Video save nahi hua'
+                    : 'Trimmed video saved!',
+              ),
+            ),
+          );
+        },
       );
     } catch (e) {
       if (mounted) {
@@ -217,7 +218,6 @@ class _TrimScreenState extends State<TrimScreen> {
       if (mounted) setState(() => saving = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
