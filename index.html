@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101018">
+<title>AI Video Studio</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101018;color:#f7f4ff;font:15px Arial,sans-serif}
+header{padding:18px 5%;border-bottom:1px solid #292638;display:flex;justify-content:space-between;align-items:center}
+h1{font-size:20px;margin:0;color:#c4a5ff}.tag,.muted{color:#aaa;font-size:13px}
+.wrap{max-width:900px;margin:24px auto;padding:0 16px}.hero{padding:24px 0}
+.hero h2{font-size:28px;margin:0 0 8px}.hero p{color:#aaa}
+.panel{background:#1b1a27;border:1px solid #302c40;border-radius:18px;padding:18px;margin:14px 0}
+.pick{display:block;text-align:center;padding:26px;border:2px dashed #7052a8;border-radius:14px;color:#d8c5ff;cursor:pointer}
+input[type=file]{display:none}video{width:100%;max-height:430px;background:#000;border-radius:12px}
+button{background:#8b5cf6;color:white;border:0;border-radius:10px;padding:12px 18px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.range{width:100%;accent-color:#a78bfa}.status{color:#c4a5ff;min-height:20px;margin-top:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.hero h2{font-size:23px}}
+</style>
+</head>
+<body>
+<header><h1>✦ AI VIDEO STUDIO</h1><span class="tag">FREE WEB EDITOR</span></header>
+<main class="wrap">
+<section class="hero"><h2>Create Something Amazing</h2><p>Apne video ko browser mein dekhein aur basic trim karein.</p></section>
+<section class="panel">
+<label class="pick" for="file">＋<br><b>Import Video</b><br><span class="muted">Gallery ya computer se video select karein</span></label>
+<input id="file" type="file" accept="video/*">
+<div id="editor" hidden>
+<video id="video" controls playsinline></video>
+<p id="duration" class="muted"></p>
+<div class="grid">
+<div><label>Start: <b id="startLabel">0.0s</b></label><input class="range" id="start" type="range" min="0" max="0" step=".1" value="0"></div>
+<div><label>End: <b id="endLabel">0.0s</b></label><input class="range" id="end" type="range" min="0" max="0" step=".1" value="0"></div>
+</div>
+<div class="controls"><button id="preview">▶ Preview selection</button><button id="export">Export trimmed video</button></div>
+<p class="muted">Export ke dauran video real time mein chalega. Browser tab khula rakhein. Output WebM format mein hoga.</p>
+<div id="status" class="status"></div>
+</div>
+</section>
+<section class="panel"><b>Editing tools</b><p>✂️ Trim & Cut — Basic trim available</p><p>🔤 Text & Titles — Coming next</p><p>♫ Music & Audio — Coming next</p><p>✨ Effects & Filters — Coming next</p></section>
+</main>
+<script>
+const file=document.getElementById('file'),video=document.getElementById('video'),editor=document.getElementById('editor'),start=document.getElementById('start'),end=document.getElementById('end'),status=document.getElementById('status');
+let url='';
+const fmt=n=>Number(n).toFixed(1)+'s';
+function labels(){document.getElementById('startLabel').textContent=fmt(start.value);document.getElementById('endLabel').textContent=fmt(end.value)}
+file.onchange=()=>{const f=file.files[0];if(!f)return;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);video.src=url;video.onloadedmetadata=()=>{const d=video.duration;start.max=end.max=d;start.value=0;end.value=d;document.getElementById('duration').textContent='Duration: '+fmt(d);editor.hidden=false;labels();status.textContent='Video ready.'}};
+start.oninput=()=>{if(+start.value>=+end.value)start.value=Math.max(0,+end.value-.1);labels()};
+end.oninput=()=>{if(+end.value<=+start.value)end.value=Math.min(video.duration,+start.value+.1);labels()};
+document.getElementById('preview').onclick=async()=>{video.currentTime=+start.value;try{await video.play()}catch(e){status.textContent='Preview start nahi hua: '+e.message;return}const stop=()=>{if(video.currentTime>=+end.value){video.pause();video.removeEventListener('timeupdate',stop)}};video.addEventListener('timeupdate',stop)};
+document.getElementById('export').onclick=async()=>{
+ const capture=video.captureStream||video.mozCaptureStream;
+ if(!capture||!window.MediaRecorder){status.textContent='Is browser mein export supported nahi hai. Latest Chrome try karein.';return}
+ const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
+ if(!mime){status.textContent='Recording format supported nahi hai.';return}
+ const chunks=[];let recorder;
+ try{
+  video.pause();video.currentTime=+start.value;
+  await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Seek timeout')),5000);video.onseeked=()=>{clearTimeout(timer);resolve()}});
+  recorder=new MediaRecorder(capture.call(video),{mimeType:mime});
+  recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  recorder.onstop=()=>{const blob=new Blob(chunks,{type:mime}),a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download='ai-video-studio-trimmed.webm';a.click();setTimeout(()=>URL.revokeObjectURL(u),60000);status.textContent='Export complete. File download ho gayi.'};
+  recorder.start();status.textContent='Export ho raha hai… video real time mein chalega.';
+  await video.play();
+  const stop=()=>{if(video.currentTime>=+end.value){video.pause();video.removeEventListener('timeupdate',stop);if(recorder.state!=='inactive')recorder.stop()}};
+  video.addEventListener('timeupdate',stop);
+ }catch(e){status.textContent='Export error: '+e.message;if(recorder&&recorder.state!=='inactive')recorder.stop()}
+};
+</script>
+</body>
+</html>
