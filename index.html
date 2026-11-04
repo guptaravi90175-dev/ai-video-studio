@@ -159,12 +159,27 @@ $('volume').oninput=()=>{v.volume=+$('volume').value;labels()};
 $('rotation').onchange=()=>{v.style.transform='rotate('+$('rotation').value+'deg)'};
 $('filter').onchange=()=>{v.style.filter=$('filter').value};
 $('text').oninput=()=>{$('caption').textContent=$('text').value;$('textClip').textContent=$('text').value||'Text track'};
-function playVideo(){
-if(!v.src){message('Pehle video import karein.');return}
-if(v.paused){
-if(v.currentTime<+$('start').value||v.currentTime>=+$('end').value)v.currentTime=+$('start').value;
-v.play();$('play').textContent='Ⅱ Pause';
-}else{v.pause();$('play').textContent='▶ Play'}
+async function playVideo(){
+  if(!v.src){
+    message('Pehle video import karein.');
+    return;
+  }
+
+  try{
+    if(v.paused){
+      await v.play();
+      $('#play').textContent='❚❚ Pause';
+      message('Video chal raha hai');
+    }else{
+      v.pause();
+      $('#play').textContent='▶ Play';
+      message('Video pause hai');
+    }
+  }catch(err){
+    console.error(err);
+    $('#play').textContent='▶ Play';
+    message('Video play nahi hua: ' + err.message);
+  }
 }
 v.ontimeupdate=()=>{
 updateClock();
