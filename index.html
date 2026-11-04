@@ -160,26 +160,26 @@ $('rotation').onchange=()=>{v.style.transform='rotate('+$('rotation').value+'deg
 $('filter').onchange=()=>{v.style.filter=$('filter').value};
 $('text').oninput=()=>{$('caption').textContent=$('text').value;$('textClip').textContent=$('text').value||'Text track'};
 async function playVideo(){
-  if(!v.src){
-    message('Pehle video import karein.');
-    return;
-  }
-
-  try{
-    if(v.paused){
-      await v.play();
-      $('#play').textContent='❚❚ Pause';
-      message('Video chal raha hai');
-    }else{
-      v.pause();
-      $('#play').textContent='▶ Play';
-      message('Video pause hai');
+    if(!v.src){
+        message('Pehle video import karein.');
+        return;
     }
-  }catch(err){
-    console.error(err);
-    $('#play').textContent='▶ Play';
-    message('Video play nahi hua: ' + err.message);
-  }
+
+    try{
+        if(v.paused){
+            await v.play();
+            $('#play').textContent='⏸ Pause';
+            message('Video chal raha hai');
+        }else{
+            v.pause();
+            $('#play').textContent='▶ Play';
+            message('Video pause hai');
+        }
+    }catch(err){
+        console.error(err);
+        $('#play').textContent='▶ Play';
+        message('Video play nahi hua: ' + err.message);
+    }
 }
 v.ontimeupdate=()=>{
 updateClock();
